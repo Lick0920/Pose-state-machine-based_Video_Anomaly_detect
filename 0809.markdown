@@ -1,0 +1,332 @@
+5e-4
+20--> 4
+
+ep12 --> 84.22
+
+
+
+### s4 与 transformer 序列长度
+
+20--> 4
+
+1. S4
+
+   ep7 84.65856750012341% AuC for 40791 samples
+
+2. transformer
+
+   ep7  84.7901377770695% AuC for 40791 samples
+
+30 -->4
+
+1. S4    lre5
+    ep7 85.03584389491212% AuC for 40791 samples
+
+2. transformer lre5 
+
+   ep7 82.97881202128353% AuC for 40791 samples
+
+3. 
+
+40 --> 4
+
+1. S4   lre5
+
+   ep10 84.56238632061685% AuC for 40791 samples
+
+2. T4  lre5
+
+   ep2  77.5279677693468% AuC for 40791 samples
+
+
+
+### weakly supurvised
+
+重新划分 data，准备dataset--> 多一个label 得到每帧的label
+
+
+
+#### 在test上两种lr
+
+- lr 5e-6： loss 0.3+   ep1 73.99
+
+- **lr 5e-4:**  loss 0.0+     ep 20  88.+   
+
+  后面微调对精度影响大 epoch 不够
+
+  ep50:  90.70929343092646% AuC for 40791 samples
+
+  重新划分：90.63627081895366% AuC for 141869 samples
+
+  - 不用再**和1 求距离**了。？？直接
+
+    
+
+- lr 5e -5 loss 太大
+
+  
+
+  
+
+​	
+
+
+
+#### 无监督先检测一轮
+
+##### 无监督+label  得到 anomaly score ----> 错
+
+- data\exp_dir_s4_splitshanghai\ShanghaiTech\Aug25_2144
+
+  - 只用无监督 ？不用训练 的baseline
+
+    ？也很低
+
+  - 无监督辅助训练后  只用训练后得分，还是需要
+
+    losses = self.lossf(orlu_dis, label_4.float()) 
+
+    这个正确做法却很低  
+
+  - 无监督 加 有监督  （与1的距离超过1了 不太对） ep22
+
+    label_4_dis = label[::,-4:].float()*1 + orlu_dis_dis # 1 + dis_anomaly
+
+    **losses = self.lossf(orlu_dis, label_4_dis)**
+
+    ep11  **95.28554247835501% AuC** for 141869 samples
+
+  - distance 作为得分  比较合理？
+
+    losses = orlu_dis = self.lossf(pred, p_truth)
+
+    精度低 不对
+
+#### 尝试
+
+##### 无监督score单独训练
+
+- label_4_dis = orlu_dis_dis 过拟合了
+
+  ep1  75.6491748509761% AuC for 141869 samples
+
+  79.41134362097355% AuC for 141869 samples
+
+  波动大 但是没效果？学习率减小？ 不可靠
+
+  Aug26_1043    5e5 试试
+
+  
+
+##### x *（无监督 + label)    错误！测试只能用一个dis才对  没学到
+
+1. 100 *？
+
+   5e-4   Aug26_0933_100(l+dis)  过拟合 波动大？
+
+   ？
+
+2. 10 *  √    学习率减小
+
+   5e-4  Aug26_0959_10(l+dis)   过拟合？波动大
+
+   ep1 **95.9369733537581% AuC** for 141869 samples
+
+   5e-5  Aug26_1018  √
+
+   ep12  sigma = 7  96.50445002201691% AuC
+
+   ep12  **sigma = 9   97.30437224137045**
+
+   ep13 **96.42215066736405% AuC** for 141869 samples
+
+3. 30*  ? 能不能再提高 好像没啥效果了5e-5 
+
+   Aug26_1714
+
+   ep12  96.32782112084084% AuC for 141869 samples
+
+   ep13   0.9706404734699039
+
+4. 5* ?
+
+   Aug26_1742 
+
+   ep1  95.90083944536994% AuC for 141869 samples
+
+5. 10  5 ？
+
+   Aug27_0911  5e5
+
+   label_4_dis = label[::,-4:].float()*10 +label[::,-4:].float()* 5*orlu_dis_dis + orlu_dis_dis  # 2 目前最好 lr 5e5
+
+   ep1     96.04493874974814% AuC for 141869 samples
+
+   Aug27_0925   5e6
+
+   ep1   96.31692574124098% AuC for 141869 samples
+
+6. 5 10
+
+   Aug27_0943   5e6
+
+   ep1  96.26560622694782% AuC for 141869 samples
+
+   Aug27_0955   5e7
+
+   ep1  96.21396218579659% AuC for 141869 samples
+
+   更低
+
+7. 30  10  不行，
+
+   Aug27_1008  5e5
+
+   ep4  95.81466077544245% AuC for 141869 samples
+
+   ep10  96.00055351150844% AuC for 141869 samples
+
+8. 10  15  
+
+   Aug27_1038  5e5  没过拟合
+
+   ep8  95.9918301170105% AuC for 141869 samples
+
+9. 10 10 10 ？ base 做对比  果然更低
+
+   Aug27_1024   
+
+   94.23 
+
+
+
+- 微调重训
+
+  12  12
+
+   Aug27_1153  5e7 学习率不好  不如 10
+
+  Aug27_1204    5e5 
+
+  
+
+  15  15  
+
+  Aug27_1642   5e5 ep7 95.72196774470531% AuC for 141869 samples
+
+  7 7
+
+  Aug27_1648   5e5 ep1  95.78927592818634% AuC 
+
+##### x *（无监督 + label)  +  cls
+
+1. Aug26_1104    5e5   手动调？
+
+   0.5x mse + 0.5x crossentry  --> ep1  过拟合？ 5e5
+
+   96.21731700564051% AuC for 141869 samples
+
+   可以调整试试
+
+   - 0.1  0.9
+
+     Aug27_1101
+
+     96.3001840009133% AuC for 141869 samples
+
+   - 0.9  0.1
+
+     Aug27_1056 
+
+     96.40 基本没变
+
+     学习率改一改   5e7
+
+     Aug27_1112
+
+     ep 6   96.2854675520442% AuC for 141869 samples
+
+   - 
+
+2.    比例可调\* cls  （可学习） 没啥用 
+
+   Aug26_1133
+
+    96.22544865448886% AuC for 141869 samples
+
+   
+
+   
+
+### 正确训练
+
+#### 无监督训练出来做有监督任务
+
+1.  71.27344908441002%    怎么这么低？
+
+2. 重新训练 不用label的。Aug27_2012
+
+   - ep10 **80.88762577157972% AuC** for 141869 samples
+
+3. 1+dis   基本和不用label一样
+
+   ep1  80.82476670125278% AuC for 141869 samples
+
+#### 应该是用label把无监督和有监督拉进
+
+无监督是只在正常训练的，异常时高
+
+有监督训练目的是：与无监督距离 在正常拉进，异常拉远
+
+##### 用pose 的极限
+
+- total_loss = label_4  # 试一下极限
+
+  96.87858948629363% AuC for 141869 samples 这是极限了
+
+​		ep7 97.58534013848522
+
+#### 只分类
+
+Aug27_2052  分不到类  还是要预测
+
+ep8  64.8773566481532% AUC
+
+## 正常 异常拉大
+
+1. 改dataset
+
+   指数次 
+
+2.  Sep02_1929   5e4
+
+   77.98531464192943% AuC for 141869 samples
+
+   loss1 = self.lossf(orlu_dis, orlu_dis_dis) # 
+
+      loss2 = self.lossf(orlu_dis_ab, label_4_dis) #
+
+   ​          ab_dis = - torch.abs(loss1 - loss2)
+
+   ​          loss_distance = torch.exp(ab_dis)
+
+3. Sep02_1958 5e4
+
+    ```
+    orlu_dis = self.lossf(pred, p_truth)
+    orlu_dis_ab = self.lossf(pred_ab, p_truth_ab)
+    loss1 = orlu_dis #
+    loss2 = orlu_dis_ab #
+    ab_dis = - torch.abs(loss1 - loss2)
+    loss_distance = torch.exp(ab_dis)
+    losses =  loss1 + loss_distance
+      losses.backward()
+    ```
+
+   
+
+​	ep3  80.46224267226656% AuC for 141869 samples
+
+2. Sep02_2009  5e5
+
+   78.78405064996097% AuC for 141869 samples

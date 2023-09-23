@@ -1,0 +1,178 @@
+deep clip 语义干扰
+
+
+
+光流N.F
+
+相对比与动作分类任务Suppressing Static Visual Cues via Normalizing Flows for Self-Supervised VideoRepresentation Learning，为什么不用视觉线索，异常检测不用准确的把每个物体的运动都识别出来，用光流知道运动趋势就够了，如果用action识别，容易过拟合。只关注是否有快速移动的物体，不需要把全图所有的移动都找出来，因为我们有detector检测器再关注每个部分，这样也不会错过。
+
+- 光流NF网络 也可以达到跨数据集domin迁移（一次训练即可），因为将运动光流映射为guass分布的函数是通用的，甚至可以达到更高的效果 avenue。
+- 交互---可解释性
+- 为何不关注异常物体：比如自行车 汽车的检测，无法预测不同场景下出现的物体，比如有的正常场景中会出现椅子 石柱，这些物体不是常见的种类，但出现在场景中也是正常的，我们人类判别是否出现异常也是根据不同场景中所出现过物体的共同信息，比如椅子虽然在其他场景中没有出现过，而它的光流是静止的 则也是正常物体。而这些物体不利于域迁移，
+
+
+
+## 256 2 24 18
+
+1. 换成 24 3 18也行，
+   精度也差不多。
+2. 不用图卷积也行
+    epoch 5, 差一个多点而已
+   Done with 82.99529676937112% AuC for 40791 samples
+
+待做
+
+- [ ] patchsize -> 224 的光流   
+
+  ped2 上 ep5 88.39795767848524% 差不多
+
+- [ ] 光流 叠加20帧---> 
+
+- [ ] K step数 Layer数  默认 K=8  L=1 （难道不够）
+
+  L=3--> ped2 收敛太快了  89.42280614707934% AuC
+
+  L=3 K=12 lr=5e-6 ep40  17ep  89.60115727082551% AuC 
+
+  
+
+  
+
+  在做：abs(loss) shanghaitech 1/5数据，L=3 K=12  lr=5e-5 ep100
+
+  
+
+## 做光流的 glow 效果应该更好？
+
+可选参数： 
+
+L K flowstep 层的层数
+
+数据采用数量 
+
+epoch,lr
+
+光流的patchsize
+
+#### ped2
+
+89.39246634125408%  ep5
+
+89.97   ep5  guass 3
+
+十倍数据集降采样的结果？差不多，
+
+
+
+#### avenue ---> zero shot的 效果很好
+
+ped2_zero_shot+Jul09_1723_ped2_9
+
+ep1: 88.50652393444058% AuC for 15324 samples
+
+ep2:  88.7093705827503% AuC for 15324 samples
+
+ep3: 87.57887017888748% AuC for 15324 samples
+
+ep4: 85.9544196439177% AuC for 15324 samples
+
+ep5: 86.54437651634159% AuC for 15324 samples
+
+ep8: 88.5853198738374% AuC for 15324 samples
+
+
+
+90.03431117259791% AuC for 15324 samples
+
+ped2 简单训练的 可以直接拿来用？？ 反而好用??
+
+结果ep越多 越来越差？  过拟合严重
+
+- ep1 81.75455477835058% AuC for 15324 samples
+- ep2  80.98204415839146% AuC for 15324 samples
+- ep8  75.74896162152412% AuC for 15324 samples
+- 
+
+#### shanghaitech zero shot 效果差不多
+
+10分之一的训练集数据使用：
+
+![image-20230709192640263](C:\Users\Lick\AppData\Roaming\Typora\typora-user-images\image-20230709192640263.png)
+
+- ep1 75.41954181356063% AuC for 40791 samples
+- ep2  76.08574103172714% AuC for 40791 samples
+- ep3  76.44337898140566% AuC for 40791 samples
+- ep5  76.87754023389577% AuC for 40791 samples
+- ep8  75.96380365549433% AuC for 40791 samples
+
+
+
+5分之一 数据的结果 --> loss 
+
+![image-20230709203227286](C:\Users\Lick\AppData\Roaming\Typora\typora-user-images\image-20230709203227286.png)
+
+- ep1 75.77282130795768% AuC for 40791 samples
+- ep2  77.41312488932913% AuC for 40791 samples    
+- ep3  77.68979511459949% AuC for 40791 samples
+- ep4  77.67455853837488% AuC for 40791 samples
+- ep5  77.3171554895002% AuC for 40791 samples
+- ep6
+- ep7
+
+
+
+avenue 的 zero shot 到shanghai 试一下
+
+- ep1 76.85363126757467% AuC for 40791 samples
+- ep2 77.10579863333975% AuC for 40791 samples
+- ep3 77.38676213199315% AuC for 40791 samples
+- ep4 76.69245106788735% AuC for 40791 samples
+- ep5 77.10858411412845% AuC for 40791 samples
+- ep6 77.18158415085168% AuC for 40791 samples
+
+或许不需要所有的数据？ 每一段视频取一部分数据训练即可
+
+证明可以互相zero shot，所以训练就不是关键的，几乎不需要训练，找到一个合适的latent表示之后。
+
+ped2 的 zero shot 效果最好? avenue 或者 shanghaitech训练都太过拟合了，能把异常的也拟合进去。
+
+ped2_9的 zero shot  差5点
+
+- 1 75.40092438754658% AuC for 40791 samples
+- 2 75.79595571654964% AuC for 40791 samples
+- 3 76.23977840220671% AuC for 40791 samples
+- 4 76.59923775550043% AuC for 40791 samples
+- 5 76.83733542400788% AuC for 40791 samples
+- 6 77.04114446229718% AuC for 40791 samples
+- 7 76.99616612371786% AuC for 40791 samples
+- 8 77.08078489533226% AuC for 40791 samples
+
+
+
+## Pose S4 预测
+
+#### shanghaitech 还可以 84.22
+
+epoch 12 84.22410837865587% AuC for 40791 samples
+
+-pose_nf + vel   0.8814254144812386
+
+\- pose_nf - s4_score  0.8601082464718945
+
+-s4_score + vel   0.8610940365966597 
+
+\- lam * s4_score + (1-lam)*vel   lam=0.3  0.8682169865552373  lam=0.5
+
+
+
+## 结合 vel  deep  s4
+
+s4     84.22410837865587 --> 0.8873737921601315
+
+- vel + s4 : 0.8673453053377161   --> 0.8917038017960099
+
+  S4 lam: 0.4  0.868264340589538 
+
+  s4 
+
+  
